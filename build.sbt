@@ -12,6 +12,8 @@ resolvers ++= Seq(
   "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 )
 
+scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
+
 fork := false
 
 libraryDependencies += "commons-io" % "commons-io" % "2.4"
