@@ -3,8 +3,7 @@ name := "concurrency-examples"
 
 version := "1.0"
 
-scalaVersion := "2.11.1"
-// scalaVersion := "2.10.4"
+scalaVersion := "2.11.6"
 
 resolvers ++= Seq(
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
@@ -14,7 +13,12 @@ resolvers ++= Seq(
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
-fork := false
+fork in Test := true
+
+// javaOptions in Test := Seq(	"-XX:+UnlockCommercialFeatures",
+// 							"-XX:+FlightRecorder",
+// 							"-XX:StartFlightRecording=defaultrecording=true",
+// 							"-XX:FlightRecorderOptions=dumponexit=true,dumponexitpath=./target/")
 
 libraryDependencies += "commons-io" % "commons-io" % "2.4"
 
@@ -45,5 +49,5 @@ libraryDependencies += "com.storm-enroute" %% "reactive-collections" % "0.5"
 
 libraryDependencies += "org.scalatest" %% "scalatest" %	"2.2.4"
 
-libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.2"
+libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.4"
 

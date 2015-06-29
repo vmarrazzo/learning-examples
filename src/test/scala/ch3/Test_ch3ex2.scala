@@ -29,7 +29,7 @@ with GeneratorDrivenPropertyChecks {
   /**
    *
    */
-  implicit override val generatorDrivenConfig = PropertyCheckConfig(workers = 50)
+  implicit override val generatorDrivenConfig = PropertyCheckConfig(minSuccessful = 4, workers = 4)
 
   /**
    *
@@ -95,9 +95,9 @@ with GeneratorDrivenPropertyChecks {
      * Generator section
      */
 
-    val setupStep = 20
-    val actionStepMax = 4
-    val numbThread = 4
+    val setupStep = 100
+    val actionStepMax = 10
+    val numbThread = 10
 
     /**
      * Thread action matrix generator
@@ -114,18 +114,19 @@ with GeneratorDrivenPropertyChecks {
 
       (actionArrays: List[List[ActionType]]) => {
 
+        /**
+         * Under test object
+         */
         val underTest = new TreiberStack[Int]
 
         /**
          * Verification data structure
          */
-
         val testCheck = Set.empty[TestActionLog]
 
         /**
-         * Verification data structure - END
+         * Fill the under test stack with some data
          */
-
         for (i <- 1 to setupStep) {
           val next = random.nextInt(100)
           underTest.push(next)
@@ -197,7 +198,7 @@ with GeneratorDrivenPropertyChecks {
         }
 
         /**
-         * verify that each element into builded stack is inside underTest
+         * verify that each element into built stack is inside underTest
          */
         for (i <- testStack) {
 
@@ -226,11 +227,9 @@ with GeneratorDrivenPropertyChecks {
          * Verification - END
          */
 
-
       }
 
     }
-
 
   }
 
