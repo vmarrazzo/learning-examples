@@ -1,6 +1,9 @@
-Learning Concurrent Programming in Scala
-========================================
+In this forked repository there is the code related to book "Learning Concurrent Programming in Scala" by Aleksandar Prokopec
 
-This repository contains the complete examples for the book Learning Concurrent Programming in Scala, published by Packt.
+I have included into test folder my personal solution for some of exercises proposed into book. 
 
-[![Packt Concurrency](concurrency-scala-book.jpg)](https://www.packtpub.com/application-development/learning-concurrent-programming-scala)
+Some points are necessary to focus on :
+1. These are my personal solution so I can have missundestood an my code can be buggy or diverge respect asked implementation
+2. I am using TDD during solution implementation
+3. I am using for testing concurrent code the Scalacheck library by Rickard Nilsson
+4. Comment and suggestion are welcome!
