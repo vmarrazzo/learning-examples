@@ -84,11 +84,6 @@ class Test_ch3ex2 extends FlatSpec
   private val random = scala.util.Random
 
   /**
-   * Used to reorder test data for verification steps
-   */
-  val testStepGenerator: AtomicInteger = new AtomicInteger(0)
-
-  /**
    * Used to track test action occurred
    *
    * @param testStep is the progressive index generated in concurrency
@@ -100,9 +95,9 @@ class Test_ch3ex2 extends FlatSpec
   /**
    * Runnable body for each thread involved into test
    */
-  def runnable: (List[ActionType], TreiberStack[Int], Set[TestActionLog]) => Unit =
+  def runnable: (List[ActionType], TreiberStack[Int], AtomicInteger, Set[TestActionLog]) => Unit =
 
-    (action: List[ActionType], tStack: TreiberStack[Int], testCheck: Set[TestActionLog]) => {
+    (action: List[ActionType], tStack: TreiberStack[Int], testStepGenerator: AtomicInteger, testCheck: Set[TestActionLog]) => {
 
       var actionCount = 0
 
@@ -133,7 +128,7 @@ class Test_ch3ex2 extends FlatSpec
   /**
    * The main test case
    */
-  it should "works with multi executor and Scala check" in {
+  it should "works with multi thread and Scala check" in {
 
     forAll((generateActions, "Threads action matrix")) {
 
@@ -144,6 +139,11 @@ class Test_ch3ex2 extends FlatSpec
            * Under test object
            */
           val underTest = new TreiberStack[Int]
+
+          /**
+           * Used to reorder test data for verification steps
+           */
+          val testStepGenerator: AtomicInteger = new AtomicInteger(0)
 
           /**
            * Verification data structure
@@ -171,7 +171,7 @@ class Test_ch3ex2 extends FlatSpec
 
             implicit val printLog: Boolean = false
 
-            val group = for (actions <- (actionArrays zipWithIndex)) yield thread(s"Sample${actions._2}", runnable(actions._1, underTest, testCheck))
+            val group = for (actions <- (actionArrays zipWithIndex)) yield thread(s"Sample${actions._2}", runnable(actions._1, underTest, testStepGenerator, testCheck))
 
             for (t <- group) t.start
 

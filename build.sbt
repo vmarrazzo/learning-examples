@@ -13,7 +13,7 @@ resolvers ++= Seq(
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 
-fork in Test := true
+fork in Test := false
 
 // javaOptions in Test := Seq(	"-XX:+UnlockCommercialFeatures",
 // 							"-XX:+FlightRecorder",
