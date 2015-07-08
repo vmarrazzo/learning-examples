@@ -8,6 +8,34 @@ import org.learningconcurrency.log
 object ch3ex8 {
 
   /**
+   *
+   */
+  def spawn[T](block: => T): T = {
+
+    val seed = scala.util.Random.alphanumeric.take(5).mkString
+
+    val serializeBasePath = System.getProperty("java.io.tmpdir") + File.separator
+
+    log(s"Invoke under test code with seed $seed")
+
+    val blockSerialize = s"${serializeBasePath}BlockSer-${seed}.ser"
+    val responseSerialize = s"${serializeBasePath}ResponseSer-${seed}.ser"
+
+    serializeBlock[T](() => block, blockSerialize)
+
+    ///  JVM
+
+    deSerializeResult(responseSerialize) match {
+      case Some(CarrierResult(x)) =>
+        x match {
+          case error: Throwable => throw error
+          case value: Any       => value.asInstanceOf[T]
+        }
+      case None => ???
+    }
+  }
+
+  /**
    * The carrier for code block
    */
   case class CarrierBlock[T](block: () => T) extends scala.Serializable
@@ -18,12 +46,13 @@ object ch3ex8 {
   case class CarrierResult[T](result: Any) extends scala.Serializable
 
   /**
-   * The remote executor based on serialization
+   * To be executed on spawned JVM
    */
   def main(args: Array[String]) {
 
     args.toList match {
       case carrierBlockPath :: carrierResultPath :: Nil => {
+
         log(s"carrierBlockPath -> ${carrierBlockPath}")
         log(s"carrierResultPath -> ${carrierResultPath}")
 
@@ -36,7 +65,9 @@ object ch3ex8 {
   }
 
   /**
-   * To be executed on spawned JVM
+   * This method de-serialize block and execute it. It serialize the response object.
+   *
+   * It can throw an exception on serialize issue
    */
   def executeCarriedBlock[T](carrierBlockPath: String, carrierResultPath: String): Unit = {
 
@@ -49,7 +80,11 @@ object ch3ex8 {
           case t: Throwable => t
         }, carrierResultPath)
       }
-      case None => ???
+      case None => {
+        val message = s"error during block de-serialize : nothing is returned!"
+        log(message)
+        throw new IOException(message)
+      }
     }
 
   }
@@ -84,20 +119,24 @@ object ch3ex8 {
    */
   def deSerializeBlock[T](blockSerializedPath: String): Option[() => T] = {
 
-    try {
+    val deSerialized = try {
       val ois = new ObjectInputStream(new FileInputStream(blockSerializedPath))
-      val deSerialized = ois.readObject.asInstanceOf[CarrierBlock[T]]
+      val obj = ois.readObject.asInstanceOf[CarrierBlock[T]]
       ois.close
 
-      Some(deSerialized.block)
+      obj
     } catch {
       case t: Throwable => {
         val message = s"error during block de-serialize -> $blockSerializedPath"
         log(message)
-        None
         throw new IOException(message)
       }
     }
+
+    if (deSerialized.block.isInstanceOf[Function0[T]])
+      Some(deSerialized.block)
+    else
+      throw new IOException("Error block deserialized type missmatch!")
   }
 
   /**

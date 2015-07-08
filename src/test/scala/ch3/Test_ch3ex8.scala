@@ -13,6 +13,8 @@ import org.scalacheck.Arbitrary._
 
 import org.learningconcurrency.log
 
+import ch3ex8._
+
 class Test_ch3ex8 extends FlatSpec
     with BeforeAndAfter
     with MustMatchers
@@ -26,65 +28,105 @@ class Test_ch3ex8 extends FlatSpec
   val serializeBasePath = System.getProperty("java.io.tmpdir") + File.separator
 
   /**
+   * Block that complete correctly
+   */
+  val blockPass: Function0[Int] =
+
+    () => {
+      scala.util.Random.nextInt(100)
+    }
+
+  /**
+   * Block that generate an exception
+   */
+  val blockFail: Function0[Int] =
+
+    () => {
+      throw new IllegalArgumentException(s"This time we have an error ${scala.util.Random.nextInt(100)}!")
+    }
+
+  /**
+   * Seed generator for file .ser
+   */
+  def seedGenerator: String = scala.util.Random.alphanumeric.take(5).mkString
+
+  /**
    *
    */
-  it should "serialize and de-serialize" in {
-
-    import ch3ex8._
-
-    val blockPass: Function0[Int] =
-
-      () => {
-        scala.util.Random.nextInt(100)
-      }
-
-    val blockFail: Function0[Int] =
-
-      () => {
-        throw new IllegalArgumentException(s"This time we have an error ${scala.util.Random.nextInt(100)}!")
-      }
+  it should "serialize and de-serialize in the same JVM" in {
 
     forAll(Gen.oneOf[Function0[Int]](blockPass, blockFail)) {
       (block0: Function0[Int]) =>
         {
 
-          val seed: String = scala.util.Random.alphanumeric.take(5).mkString
+          val seed = seedGenerator
+
+          log(s"Invoke under test code with seed $seed")
 
           val blockSerialize = s"${serializeBasePath}BlockSer-${seed}.ser"
           val responseSerialize = s"${serializeBasePath}ResponseSer-${seed}.ser"
 
-          try {
+          /**
+           * Core test
+           */
 
-            log(s"Invoke under test code with seed $seed")
+          val deSerialized = try {
 
             //val block : Function0[Int] = () => block2to0(isError,data)
 
-            ch3ex8.serializeBlock[Int](block0, blockSerialize)
+            serializeBlock[Int](block0, blockSerialize)
 
-            ch3ex8.executeCarriedBlock[Int](blockSerialize, responseSerialize)
+            executeCarriedBlock[Int](blockSerialize, responseSerialize)
 
-            val deSerialized = ch3ex8.deSerializeResult(responseSerialize)
-
-            deSerialized match {
-              case Some(CarrierResult(x)) => 
-                x match {
-                  case error : Throwable => log(s"after serial computation returns $error")
-                  case value : Int => log(s"after serial computation returns $value")
-                }
-              case None => fail("de-serialize must returns a CarrierResult!")
-            }
-
-            true must be(true)
+            deSerializeResult(responseSerialize)
 
           } catch {
 
             case t: Exception => {
               t.printStackTrace()
-              fail("de-serialize must returns a CarrierResult!")
+              fail("error during core test!")
             }
           }
 
+          /**
+           * execute de-serialized block
+           */
+
+          deSerialized match {
+            case Some(CarrierResult(x)) =>
+              x match {
+                case error: Throwable => log(s"after serial computation returns $error")
+                case value: Int       => log(s"after serial computation returns $value")
+              }
+            case None => fail("de-serialize does not find a CarrierResult!")
+          }
+
         }
+    }
+
+  }
+
+  /**
+   *
+   */
+  it should "serialize and de-serialize in different JVMs" in {
+
+    val block0 = blockPass
+    
+    /**
+     * Core test
+     */
+
+    try {
+
+      spawn(block0)  
+
+    } catch {
+
+      case t: Exception => {
+        t.printStackTrace()
+        fail("error during core test!")
+      }
     }
 
   }
