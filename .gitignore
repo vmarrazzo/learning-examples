@@ -8,3 +8,9 @@ SCALA-README.md
 url-spec.txt
 
 
+/bin/
+.classpath
+.project
+.settings
+
+.cache*
