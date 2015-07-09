@@ -111,7 +111,7 @@ class Test_ch3ex8 extends FlatSpec
    */
   it should "serialize and de-serialize in different JVMs" in {
 
-    val block0 = blockPass
+    val block0 = blockFail
     
     /**
      * Core test
@@ -119,8 +119,12 @@ class Test_ch3ex8 extends FlatSpec
 
     try {
 
-      spawn(block0)  
-
+      try {
+        log(s"the spawn returns ${spawn(block0)}")  
+      }catch {
+        case iae: IllegalArgumentException => log(s"the spawn returns ${iae.getMessage}")  
+      }
+      
     } catch {
 
       case t: Exception => {

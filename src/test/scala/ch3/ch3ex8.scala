@@ -23,13 +23,36 @@ object ch3ex8 {
 
     serializeBlock[T](() => block, blockSerialize)
 
+    val fileBlock = new File(blockSerialize)
+    
+    do {
+      Thread.sleep(500)  
+    } while ( !fileBlock.exists )
+    
     ///  JVM
-
+    val scalaBin = Seq("whereis", "scala").!!.trim.split(" ")(1)
+    
+    //val debug = """export JAVA_OPTS="-Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,address=4000,server=y,suspend=y";"""
+    
+    val command = s"$scalaBin -cp ./target/scala-2.11/test-classes/:./target/scala-2.11/classes/ ch3.ch3ex8 ${blockSerialize} ${responseSerialize}"
+    
+    val remoteProcess = command.run()
+    
+    val fileResponse = new File(responseSerialize)
+    
+    do {
+      Thread.sleep(500)  
+    } while ( !fileResponse.exists )
+    
+    /**
+     * scala -cp ./target/scala-2.11/test-classes/:./target/scala-2.11/classes/ ch3.ch3ex8 ${blockSerialize} ${responseSerialize}
+     */
+    
     deSerializeResult(responseSerialize) match {
       case Some(CarrierResult(x)) =>
         x match {
           case error: Throwable => throw error
-          case value: Any       => value.asInstanceOf[T]
+          case value: T       => value
         }
       case None => ???
     }
