@@ -1,7 +1,7 @@
 package org.learningconcurrency.exercises.ch4
 
 import java.util.{ Timer, TimerTask }
-import scala.concurrent._
+import scala.concurrent.{ Await, ExecutionContext, Future, Promise, TimeoutException}
 import scala.concurrent.duration._
 import scala.concurrent.duration.Duration
 import scala.io.{ Source, StdIn }
@@ -15,6 +15,8 @@ object ch4ex1 {
 
   /**
    * Timeout Future
+   *
+   * I used a custom version that carry-in the "timer"
    */
 
   def timeout(t: Long): Future[Unit] = {
@@ -30,6 +32,14 @@ object ch4ex1 {
     }, t)
     p.future
   }
+
+  /**
+   *
+   *
+   * Core block of code
+   *
+   *
+   */
 
   /**
    * Service Time consuming Future
@@ -54,9 +64,15 @@ object ch4ex1 {
   }
 
   /**
-   * Core block of code
+   * main method
+   *
+   * @param args
    */
+
   def main(args: Array[String]) {
+
+    val awaitTimeout = 5 seconds
+    val twoDotsDelay = 50 // ms
 
     var inputLine = ""
 
@@ -73,7 +89,9 @@ object ch4ex1 {
         val (cancel, future) = cancellable(cancel => {
 
           while (!cancel.isCompleted) {
-            Thread.sleep(50)
+
+            // here is requirement add a 50 ms between two dot
+            Thread.sleep(twoDotsDelay)
             print(" . ")
           }
 
@@ -81,14 +99,14 @@ object ch4ex1 {
         })
 
         /**
-         * Triggering the service future with a timeout and prepare what to print on screen
+         * Triggering the service future with timeout to prepare which message to print on screen
          */
 
         val what2Print: Future[String] = {
 
           val p = Promise[String]
 
-          Future.firstCompletedOf(genServiceFuture(inputLine) :: timeout(2000) :: Nil) onComplete {
+          Future.firstCompletedOf( genServiceFuture(inputLine) :: timeout(2000) :: Nil) onComplete {
 
             case Success(data) =>
               if (!cancel.isCompleted) {
@@ -109,17 +127,22 @@ object ch4ex1 {
           p.future
         }
 
+        /**
+         * Brush is used to avoid conflict in loop printing
+         */
+
         val brush: Future[Unit] = Future {
 
-          var send2Screen = Await.result(what2Print, 10 seconds)
+          val send2Screen = Await.result( what2Print, awaitTimeout)
 
-          Thread.sleep(50)
+          // I cannot avoid to add this sleep because I have not resolution on single dot printing
+          Thread.sleep(twoDotsDelay)
 
           println()
           println(send2Screen)
         }
 
-        Await.ready(brush, 10 seconds)
+        Await.ready( brush, awaitTimeout)
 
       } // end if "exit"
 
