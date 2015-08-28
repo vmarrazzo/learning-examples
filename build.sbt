@@ -3,7 +3,7 @@ name := "concurrency-examples"
 
 version := "1.0"
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.7"
 
 resolvers ++= Seq(
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
@@ -51,3 +51,11 @@ libraryDependencies += "org.scalatest" %% "scalatest" %	"2.2.5"
 
 libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.12.4"
 
+libraryDependencies ++= {
+  val breezeV = "0.11.2"
+  Seq(
+  	"org.scalanlp" %% "breeze" % breezeV,
+  	"org.scalanlp" %% "breeze-natives" % breezeV, 
+    "org.scalanlp" %% "breeze-viz" % breezeV
+    )
+}
