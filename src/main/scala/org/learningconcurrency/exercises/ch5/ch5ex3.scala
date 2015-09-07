@@ -4,6 +4,8 @@ import breeze.math.Complex
 import scala.swing.{ BorderPanel, Component, MainFrame }
 import java.awt.{ Color, Dimension, Graphics2D }
 
+import org.learningconcurrency.ch5._
+
 object ch5ex3 {
 
   /**
@@ -91,16 +93,18 @@ object ch5ex3 {
       } yield (point -> indexOfConv(point))
     }.toMap
 
-    val toBeColored = convergenceMap.filter { case ((k, v)) => v != None }
+    //val toBeColored = convergenceMap.filter { case ((k, v)) => v != None }
     val toBeBlack = convergenceMap.filter { case ((k, v)) => v == None }.keys // no added value with map
 
+    /*
     println(s"Plot resoution ($width,$height)")
     println(s"xrange points -> ${xrange.size}")
     println(s"yrange points -> ${yrange.size}")
     println(s"Total number of expected points -> ${width * height}")
     println(s"Obtained points -> ${convergenceMap.size}")
     println(s"Point that diverge and will be colored -> ${toBeColored.size}")
-
+    */
+  
     /*
     import java.io._
     val pw = new PrintWriter(new File("toBeColored.txt"))
