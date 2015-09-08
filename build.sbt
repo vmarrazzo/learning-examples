@@ -20,6 +20,17 @@ fork in Test := false
 // 							"-XX:StartFlightRecording=defaultrecording=true",
 // 							"-XX:FlightRecorderOptions=dumponexit=true,dumponexitpath=./target/")
 
+//fork in run := true
+//
+//javaOptions in run := Seq(	"-XX:+UnlockCommercialFeatures",
+// 				"-XX:+FlightRecorder", 
+// 				"-XX:StartFlightRecording=defaultrecording=true",
+// 				"-XX:FlightRecorderOptions=dumponexit=true,dumponexitpath=./target/" //,
+//				//"-Xms512M", 
+//				//"-Xmx3536M", 
+//				//"-Xss1M" 
+//				)
+
 libraryDependencies += "commons-io" % "commons-io" % "2.4"
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-async" % "0.9.1"

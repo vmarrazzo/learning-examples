@@ -75,7 +75,7 @@ object ch5ex3 {
       visible = true
       centerOnScreen
 
-      def calculateColor(convIndex: Option[Int]): Color = {
+      def calculateColor(convIndex: Option[Int]): Color =
         convIndex match {
           case Some(iter) => {
 
@@ -97,23 +97,27 @@ object ch5ex3 {
           }
           case None => Color.BLACK
         }
-      }
 
       contents = new BorderPanel {
         add(new Component {
+
           override def paintComponent(g: Graphics2D) {
 
+            // Cap. Side effects in parallel operations
+            // How to improve?
             convergenceMap foreach {
               case (complex, indexConv) => {
-                g.setColor(calculateColor(indexConv))
-                complex2Pixel.get(complex) match {
-                  case Some((x, y)) => g.drawLine(x, y, x, y)
-                  case None         => ??? // Impossible condition
-                }
+                //g synchronized {
+                  g.setColor(calculateColor(indexConv))
+                  complex2Pixel.get(complex) match {
+                    case Some((x, y)) => g.drawLine(x, y, x, y)
+                    case None         => ??? // Impossible condition
+                  }
+                //}
               }
             }
-
           }
+
         }, BorderPanel.Position.Center)
       }
     } // end main frame
