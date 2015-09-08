@@ -86,12 +86,31 @@ object ch5ex3 {
     // the complex point for mathematical calculation
     val complexPlanCoordinate = complex2Pixel.keys.toVector
 
-    // This map contains the coordinate according convergence (None) and divergence (Some(s))
-    val convergenceMap: Map[Complex, Option[Int]] = {
-      for {
-        point <- complexPlanCoordinate
-      } yield (point -> indexOfConv(point))
-    }.toMap
+    import scala.collection.parallel.immutable.ParMap
+
+    var convergenceMap: Map[Complex, Option[Int]] = null
+    var convergenceMapPar: ParMap[Complex, Option[Int]] = null
+
+    val creationConvergenceMapSeq = timed {
+      // This map contains the coordinate according convergence (None) and divergence (Some(s))
+      convergenceMap = {
+        for {
+          point <- complexPlanCoordinate
+        } yield (point -> indexOfConv(point))
+      }.toMap
+    }
+
+    val creationConvergenceMapPar = timed {
+      // This map contains the coordinate according convergence (None) and divergence (Some(s))
+      convergenceMapPar = {
+        for {
+          point <- complexPlanCoordinate.par
+        } yield (point -> indexOfConv(point))
+      }.toMap
+    }
+
+    println(s"Convergence obtained sequentially $creationConvergenceMapSeq ms")
+    println(s"Convergence obtained parallel $creationConvergenceMapPar ms")
 
     //val toBeColored = convergenceMap.filter { case ((k, v)) => v != None }
     val toBeBlack = convergenceMap.filter { case ((k, v)) => v == None }.keys // no added value with map
@@ -120,12 +139,29 @@ object ch5ex3 {
       contents = new BorderPanel {
         add(new Component {
           override def paintComponent(g: Graphics2D) {
-            toBeBlack foreach {
-              case c: Complex => complex2Pixel.get(c) match {
-                case Some((x, y)) => g.drawLine(x, y, x, y)
-                case None => ??? // Impossible condition
+
+            def calculateColor(convIndex: Option[Int]): Color = {
+              convIndex match {
+                case Some(iter) => {
+                  val c = 3*math.log(iter)/math.log(maxConvergenceThreshold-1.0)
+                  if(c<1) new Color((255*c).toInt, 0, 0)
+                  else if(c<2) new Color(255, (255*(c-1)).toInt, 0)
+                  else new Color(255, 255, (255*(c-2)).toInt)
+                }
+                case None => Color.BLACK
               }
             }
+
+            convergenceMap foreach {
+              case ( complex, indexConv) => {
+                g.setColor(calculateColor(indexConv))
+                complex2Pixel.get(complex) match {
+                  case Some((x, y)) => g.drawLine(x, y, x, y)
+                  case None => ??? // Impossible condition
+                }
+              }
+            }
+
           }
         }, BorderPanel.Position.Center)
       }
