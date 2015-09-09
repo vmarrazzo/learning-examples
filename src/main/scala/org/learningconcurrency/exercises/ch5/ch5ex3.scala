@@ -60,23 +60,61 @@ object ch5ex3 {
     // evaluate convergence
     stream.find(diverge) match {
       case Some(index) => Some(stream.indexOf(index)) // diverge so will be convergenceMapted
-      case None        => None // never diverge -> black
+      case None => None // never diverge -> black
     }
   }
 
   /**
-   * It used to encapsulate plotting to measure its time.
-   *
-   * It returns the rendered Image only for testing
+   * It produces the rendered image for plotting
    */
-  private def plotFrame(  convergenceMap: GenMap[Complex, Option[Int]], 
-                          complex2Pixel: Map[Complex, (Int, Int)], 
-                          pTitle: String = "ch5x3", 
-                          dispose: Boolean = true): BufferedImage = {
+  private def renderingImage( convergenceMap: GenMap[Complex, Option[Int]],
+                              complex2Pixel: Map[Complex, (Int, Int)]): BufferedImage = {
 
     // Cap. Side effects in parallel operations
     // Improved using a sort of atomic action setColor and draw pixel together
-    val image = new BufferedImage( width, height, BufferedImage.TYPE_INT_ARGB)
+    val image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+
+    def calculateColor(convIndex: Option[Int]): Color =
+      convIndex match {
+        case Some(iter) => {
+
+          // iter is contained into (0,maxConvergenceThreshold)
+          val c = 3 * math.log(iter + 1.0) / math.log(maxConvergenceThreshold)
+
+          val (r, g, b) =
+            if (c < 1)
+              ((255 * c).toInt, 0, 0)
+            else if (c < 2)
+              (255, (255 * (c - 1)).toInt, 0)
+            else
+              (255, 255, (255 * (c - 2)).toInt)
+
+          //import org.learningconcurrency._
+          //log(s"Index -> ${iter} to ($r,$g,$b)")
+
+          new Color(r, g, b)
+        }
+        case None => Color.BLACK
+      }
+
+    convergenceMap foreach {
+      case (complex, indexConv) => {
+        complex2Pixel.get(complex) match {
+          case Some((x, y)) => image.setRGB(x, y, calculateColor(indexConv).getRGB)
+          case None => ??? // Impossible condition
+        }
+      }
+    }
+
+    image
+  }
+
+  /**
+   * It used to encapsulate plotting rendered image.
+   */
+  private def plotFrame(  image: BufferedImage,
+                          pTitle: String = "ch5x3",
+                          dispose: Boolean = true): Unit = {
 
     val mFrame = new MainFrame {
 
@@ -86,43 +124,10 @@ object ch5ex3 {
       centerOnScreen
       resizable = false
 
-      def calculateColor(convIndex: Option[Int]): Color =
-        convIndex match {
-          case Some(iter) => {
-
-            // iter is contained into (0,maxConvergenceThreshold)
-            val c = 3 * math.log(iter + 1.0) / math.log(maxConvergenceThreshold)
-
-            val (r, g, b) =
-              if (c < 1)
-                ((255 * c).toInt, 0, 0)
-              else if (c < 2)
-                (255, (255 * (c - 1)).toInt, 0)
-              else
-                (255, 255, (255 * (c - 2)).toInt)
-
-            //import org.learningconcurrency._
-            //log(s"Index -> ${iter} to ($r,$g,$b)")
-
-            new Color(r, g, b)
-          }
-          case None => Color.BLACK
-        }
-
       contents = new BorderPanel {
         add(new Component {
 
           override def paintComponent(g: Graphics2D) {
-
-            convergenceMap foreach {
-              case (complex, indexConv) => {
-                  complex2Pixel.get(complex) match {
-                    case Some((x, y)) => image.setRGB( x, y, calculateColor(indexConv).getRGB)
-                    case None         => ??? // Impossible condition
-                  }
-              }
-            }
-
             g.drawImage(image, 0, 0, null)
           }
 
@@ -132,10 +137,13 @@ object ch5ex3 {
 
     Thread.sleep(2000)
 
+    import java.io.File
+    import javax.imageio.ImageIO
+
+    ImageIO.write(image, "png", new File(s"${pTitle}.png"))
+
     if (dispose)
       mFrame.dispose
-
-    image
   }
 
   /**
@@ -217,19 +225,20 @@ object ch5ex3 {
     var imageSeq: BufferedImage = null
     var imagePar: BufferedImage = null
 
-    val plottingSeq = timed { imageSeq = plotFrame(convergenceMap, complex2Pixel, "ch5x3 Sequential") }
-    val plottingPar = timed { imagePar = plotFrame(convergenceMapPar, complex2Pixel, "ch5x3 Parallel") }
+    val renderingSeq = timed { imageSeq = renderingImage(convergenceMap, complex2Pixel) }
+    val renderingPar = timed { imagePar = renderingImage(convergenceMapPar, complex2Pixel) }
 
-    Thread.sleep(2000)
+    assert((imageSeq.getWidth == imagePar.getWidth) && (imageSeq.getHeight == imagePar.getHeight), s"Image size does not match Seq=(${imageSeq.getWidth},${imageSeq.getHeight}) Par=(${imagePar.getWidth},${imagePar.getHeight})")
 
-    assert( (imageSeq.getWidth == imagePar.getWidth) && (imageSeq.getHeight == imagePar.getHeight), s"Image size does not match Seq=(${imageSeq.getWidth},${imageSeq.getHeight}) Par=(${imagePar.getWidth},${imagePar.getHeight})")
-
-    for (x <- 0 until imageSeq.getWidth) 
+    for (x <- 0 until imageSeq.getWidth)
       for (y <- 0 until imageSeq.getHeight)
-        assert( imageSeq.getRGB(x, y) == imagePar.getRGB(x, y), s"Pixel ($x,$y) does not match!" )
+        assert(imageSeq.getRGB(x, y) == imagePar.getRGB(x, y), s"Pixel ($x,$y) does not match!")
 
     println("Rendered images match pixel by pixel")
-    println(s"Plotting sequentially $plottingSeq ms")
-    println(s"Plotting parallel $plottingPar ms")
+    println(s"Rendered sequentially $renderingSeq ms")
+    println(s"Rendered parallel $renderingPar ms")
+
+    plotFrame(imageSeq, "ch5x3 Sequential")
+    plotFrame(imagePar, "ch5x3 Parallel")
   }
 }
