@@ -2,7 +2,8 @@ package org.learningconcurrency.exercises.ch5
 
 import breeze.math.Complex
 import scala.swing.{ BorderPanel, Component, MainFrame }
-import java.awt.{ Color, Dimension, Graphics2D }
+import java.awt.{ Color, Dimension, Graphics2D, Image }
+import java.awt.image.BufferedImage
 
 import scala.collection._
 
@@ -64,9 +65,18 @@ object ch5ex3 {
   }
 
   /**
-   * It used to encapsulate plotting to measure its time
+   * It used to encapsulate plotting to measure its time.
+   *
+   * It returns the rendered Image only for testing
    */
-  private def plotFrame(convergenceMap: GenMap[Complex, Option[Int]], complex2Pixel: Map[Complex, (Int, Int)], pTitle: String = "ch5x3", dispose: Boolean = true): Unit = {
+  private def plotFrame(  convergenceMap: GenMap[Complex, Option[Int]], 
+                          complex2Pixel: Map[Complex, (Int, Int)], 
+                          pTitle: String = "ch5x3", 
+                          dispose: Boolean = true): BufferedImage = {
+
+    // Cap. Side effects in parallel operations
+    // Improved using a sort of atomic action setColor and draw pixel together
+    val image = new BufferedImage( width, height, BufferedImage.TYPE_INT_ARGB)
 
     val mFrame = new MainFrame {
 
@@ -74,6 +84,7 @@ object ch5ex3 {
       preferredSize = new Dimension(width, height)
       visible = true
       centerOnScreen
+      resizable = false
 
       def calculateColor(convIndex: Option[Int]): Color =
         convIndex match {
@@ -91,7 +102,7 @@ object ch5ex3 {
                 (255, 255, (255 * (c - 2)).toInt)
 
             //import org.learningconcurrency._
-            //log(s"Index -> ${iter} to ($r,$g,$b)")                      
+            //log(s"Index -> ${iter} to ($r,$g,$b)")
 
             new Color(r, g, b)
           }
@@ -103,19 +114,16 @@ object ch5ex3 {
 
           override def paintComponent(g: Graphics2D) {
 
-            // Cap. Side effects in parallel operations
-            // How to improve?
             convergenceMap foreach {
               case (complex, indexConv) => {
-                //g synchronized {
-                  g.setColor(calculateColor(indexConv))
                   complex2Pixel.get(complex) match {
-                    case Some((x, y)) => g.drawLine(x, y, x, y)
+                    case Some((x, y)) => image.setRGB( x, y, calculateColor(indexConv).getRGB)
                     case None         => ??? // Impossible condition
                   }
-                //}
               }
             }
+
+            g.drawImage(image, 0, 0, null)
           }
 
         }, BorderPanel.Position.Center)
@@ -126,6 +134,8 @@ object ch5ex3 {
 
     if (dispose)
       mFrame.dispose
+
+    image
   }
 
   /**
@@ -204,9 +214,21 @@ object ch5ex3 {
     pw.close
     */
 
-    val plottingSeq = timed { plotFrame(convergenceMap, complex2Pixel, "ch5x3 Sequential") }
-    val plottingPar = timed { plotFrame(convergenceMapPar, complex2Pixel, "ch5x3 Parallel") }
+    var imageSeq: BufferedImage = null
+    var imagePar: BufferedImage = null
 
+    val plottingSeq = timed { imageSeq = plotFrame(convergenceMap, complex2Pixel, "ch5x3 Sequential") }
+    val plottingPar = timed { imagePar = plotFrame(convergenceMapPar, complex2Pixel, "ch5x3 Parallel") }
+
+    Thread.sleep(2000)
+
+    assert( (imageSeq.getWidth == imagePar.getWidth) && (imageSeq.getHeight == imagePar.getHeight), s"Image size does not match Seq=(${imageSeq.getWidth},${imageSeq.getHeight}) Par=(${imagePar.getWidth},${imagePar.getHeight})")
+
+    for (x <- 0 until imageSeq.getWidth) 
+      for (y <- 0 until imageSeq.getHeight)
+        assert( imageSeq.getRGB(x, y) == imagePar.getRGB(x, y), s"Pixel ($x,$y) does not match!" )
+
+    println("Rendered images match pixel by pixel")
     println(s"Plotting sequentially $plottingSeq ms")
     println(s"Plotting parallel $plottingPar ms")
   }
